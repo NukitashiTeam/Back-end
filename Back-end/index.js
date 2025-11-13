@@ -75,6 +75,7 @@ app.use('/api/music', musicRouter);
 
 app.use(cors({
   origin: [
+    'https://moody-blue-597542124573.asia-southeast2.run.app',
     'https://mymusic.vercel.app',
     'https://mymusic.netlify.app',
     'https://mymusic.com',

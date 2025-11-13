@@ -11,7 +11,7 @@ const option = {
         },
         servers: [
             {
-                url: 'http://localhost:3000',
+                url: 'https://moody-blue-597542124573.asia-southeast2.run.app',
                 description: 'Development server'
             },
         ],
