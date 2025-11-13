@@ -8,11 +8,30 @@ const path = require('path');
 const cors = require('cors');
 app.use(cors()); 
 
+const swaggerUi = require('swagger-ui-express');
+const option = require("./swagger");
+const swaggerJSDoc = require("swagger-jsdoc");
+
 require('dotenv').config();
 
 const connectDB = require('./database');
 const Music = require('./Model/MusicSchema');
 const musicRouter = require('./Router/MusicRouter');
+
+const specs = swaggerJSDoc(option);
+app.set("trust proxy", 1);
+app.get("/openapi.json", (req, res) => {
+  const host = req.get("host");
+  const proto = req.get("x-forwarded-proto") || req.protocol;
+  const dynamic = { ...specs, servers: [{ url: `${proto}://${host}` }] };
+  res.json(dynamic);
+});
+
+app.use(
+  "/api-docs",
+  swaggerUi.serve,
+  swaggerUi.setup(specs, { explorer: true })
+);
 
 connectDB();
 
