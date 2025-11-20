@@ -1,5 +1,6 @@
 const { version } = require("mongoose");
 const { type } = require("os");
+const swaggerAutogen = require('swagger-autogen')();
 
 const option = {
     definition:{
@@ -11,9 +12,13 @@ const option = {
         },
         servers: [
             {
-                url: 'https://moody-blue-597542124573.asia-southeast2.run.app',
-                description: 'Development server'
+                url: 'http://localhost:3000',
+                description: 'Local Development'
             },
+            {
+                url: 'https://moody-blue-597542124573.asia-southeast2.run.app',
+                description: 'Production (Google Cloud)'
+            }
         ],
         components: {
             schemas: {
