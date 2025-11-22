@@ -224,12 +224,12 @@ router.post('/user', UserController.createUser);
 
 /**
  * @swagger
- * /api/user/sign-up:
+ * /api/user/signup:
  *   post:
  *     tags:
  *       - User
- *     summary: Đăng ký người dùng mới
- *     description: Đăng ký user mới với các phương thức- tạm thời kiểm tra phương thức
+ *     summary: Đăng ký tài khoản mới
+ *     description: Đăng ký tài khoản người dùng mới, kiểm tra trùng username/email/phone, gửi OTP xác thực về email.
  *     requestBody:
  *       required: true
  *       content:
@@ -237,30 +237,32 @@ router.post('/user', UserController.createUser);
  *           schema:
  *             type: object
  *             required:
- *               - provider
- *               - name
+ *               - username
+ *               - password
+ *               - email
+ *               - phone
  *             properties:
- *               phone:
- *                 type: string
- *                 description: Số điện thoại (bắt buộc nếu provider = phone)
- *                 example: "0912345678"
- *               email:
- *                 type: string
- *                 format: email
- *                 description: Email (bắt buộc nếu provider = google hoặc facebook)
- *                 example: "user@example.com"
  *               username:
  *                 type: string
  *                 description: Tên người dùng
- *                 example: "Nguyễn Văn A"
+ *                 example: "NguyenVanA"
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: Email đăng ký
+ *                 example: "user@example.com"
+ *               phone:
+ *                 type: string
+ *                 description: Số điện thoại đăng ký
+ *                 example: "0912345678"
  *               password:
  *                 type: string
  *                 format: password
- *                 description: Mật khẩu (cho provider = phone)
- *                 example: "password123"
+ *                 description: Mật khẩu đăng ký
+ *                 example: "123456"
  *     responses:
  *       201:
- *         description: Tạo người dùng thành công
+ *         description: Đăng ký thành công, vui lòng xác thực OTP
  *         content:
  *           application/json:
  *             schema:
@@ -271,37 +273,148 @@ router.post('/user', UserController.createUser);
  *                   example: true
  *                 message:
  *                   type: string
- *                   example: "Tạo người dùng thành công"
+ *                   example: "User registered successfully, please verify OTP sent to your email"
  *                 data:
  *                   type: object
- *                   properties:
- *                     _id:
- *                       type: string
- *                     phone:
- *                       type: string
- *                     name:
- *                       type: string
- *                     role:
- *                       type: string
- *                     isVerified:
- *                       type: boolean
  *       400:
- *         description: Dữ liệu không hợp lệ hoặc user đã tồn tại
+ *         description: Tên, số điện thoại hoặc email đã tồn tại
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 success:
- *                   type: boolean
- *                   example: false
  *                 message:
  *                   type: string
- *                   example: "Số điện thoại hoặc email đã được đăng ký"
+ *                   example: "Username đã tồn tại"
  *       500:
  *         description: Lỗi server
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "lỗi server"
  */
-router.post('/sign-up', UserController.userSignUp);
+router.post('/signup', UserController.userSignUp);
+
+/**
+ * @swagger
+ * /api/user/verifyOTP:
+ *   post:
+ *     tags:
+ *       - User
+ *     summary: Xác thực OTP người dùng
+ *     description: Xác thực mã OTP để xác minh tài khoản người dùng (hoàn tất đăng ký hoặc khôi phục bảo mật).
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - otp
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: Email của người dùng
+ *                 example: "user@example.com"
+ *               otp:
+ *                 type: string
+ *                 description: Mã OTP gửi về email
+ *                 example: "890612"
+ *     responses:
+ *       200:
+ *         description: Xác thực thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Tài khoản đã được xác thực, xin mời đăng nhập"
+ *       400:
+ *         description: Dữ liệu không hợp lệ hoặc OTP sai/hết hạn/user chưa tồn tại
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "OTP không hợp lệ hoặc đã hết hạn"
+ *       500:
+ *         description: Lỗi server
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Xảy ra lỗi khi xác thực OTP"
+ */
+router.post('/verifyOTP', UserController.verifyOTP);
+
+/**
+ * @swagger
+ * /api/user/resendOTP:
+ *   post:
+ *     tags:
+ *       - User
+ *     summary: Gửi lại mã OTP qua email
+ *     description: Tạo và gửi lại mã OTP mới để xác thực tài khoản (chỉ user chưa xác minh).
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: Email của người dùng
+ *                 example: "user@example.com"
+ *     responses:
+ *       200:
+ *         description: Gửi OTP thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "OTP đã được gửi lại thành công"
+ *       400:
+ *         description: Dữ liệu không hợp lệ, user chưa tồn tại hoặc đã xác thực
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Không tìm thấy user hoặc tài khoản đã được xác thực"
+ *       500:
+ *         description: Lỗi server
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Xảy ra lỗi khi gửi lại OTP"
+ */
+router.post('/resendOTP', UserController.resendOTP);
 
 /**
  * @swagger
@@ -309,8 +422,8 @@ router.post('/sign-up', UserController.userSignUp);
  *   post:
  *     tags:
  *       - User
- *     summary: Người dùng đăng nhập vào hệ thống
- *     description: Người dùng đăng nhập vào hệ thống với các phương thức- tạm thời kiểm tra phương thức
+ *     summary: Đăng nhập hệ thống
+ *     description: Đăng nhập bằng username và password, kiểm tra trạng thái xác thực tài khoản.
  *     requestBody:
  *       required: true
  *       content:
@@ -318,49 +431,97 @@ router.post('/sign-up', UserController.userSignUp);
  *           schema:
  *             type: object
  *             required:
- *               - provider
- *               - name
+ *               - username
+ *               - password
  *             properties:
  *               username:
  *                 type: string
  *                 description: Tên người dùng
- *                 example: "Nguyễn Văn A"
+ *                 example: "NguyenVanA"
  *               password:
  *                 type: string
  *                 format: password
- *                 description: Mật khẩu (cho provider = phone)
- *                 example: "password123"
+ *                 description: Mật khẩu
+ *                 example: "123456"
  *     responses:
- *       201:
+ *       200:
  *         description: Đăng nhập thành công
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
  *                 message:
  *                   type: string
- *                   example: "chào mừng đăng nhập thành công"
- *       400:
- *         description: Dữ liệu không hợp lệ hoặc user đã tồn tại
+ *                   example: "chào mừng đăng nhập NguyenVanA"
+ *                 data:
+ *                   type: object
+ *       401:
+ *         description: Mật khẩu không đúng hoặc tài khoản chưa xác thực
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 success:
- *                   type: boolean
- *                   example: false
  *                 message:
  *                   type: string
- *                   example: "Số điện thoại hoặc email đã được đăng ký"
+ *                   example: "Mật khẩu không đúng"
+ *       404:
+ *         description: Không tìm thấy user
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Không tìm thấy user"
  *       500:
  *         description: Lỗi server
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "lỗi server"
  */
 router.post('/login', UserController.userLogin);
+
+/**
+ * @swagger
+ * /api/user/logout:
+ *   post:
+ *     tags:
+ *       - User
+ *     summary: Đăng xuất người dùng
+ *     description: Đăng xuất tài khoản khỏi hệ thống, hủy session hiện tại.
+ *     requestBody:
+ *       required: false
+ *     responses:
+ *       200:
+ *         description: Đăng xuất thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Đăng xuất thành công"
+ *       500:
+ *         description: Lỗi khi đăng xuất
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Lỗi khi đăng xuất"
+ */
+router.post('/logout', UserController.userLogout);
 
 /**
  * @swagger

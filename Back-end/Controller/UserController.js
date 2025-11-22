@@ -4,8 +4,23 @@ const axios = require('axios');
 const fs = require('fs');
 const bcrypt = require('bcryptjs');
 const path = require('path');
+const nodemailer = require('nodemailer');
+const crypto = require('crypto');
+
 
 const User = require('../Model/UserSchema'); // import UserSchema
+
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: 'lekhanh98777@gmail.com',
+    pass: 'qjhdzueolgabesic'
+  }
+})
+
+const generateOTP = () => {
+  return crypto.randomInt(1000, 9999).toString();
+}
 
 // @ts-ignore
 exports.getAllUsers = async (req, res) => {
@@ -152,7 +167,9 @@ exports.userSignUp = async (req, res) => {
             phone: phone,
             email: email,
             password: password,
-            isVerified: true
+            isVerified: false,
+            otp: generateOTP(),
+            otpExpiry: new Date(Date.now() + 10 * 60 * 1000)
         }
 
         const existingUsername = await User.findOne({ username: username });
@@ -160,24 +177,35 @@ exports.userSignUp = async (req, res) => {
         const existingEmail = await User.findOne({email: email});
 
         if(existingUsername){
-            return  res.status(400).json({message: "Username đã tồn tại"});
+            return res.status(400).json({message: "Username đã tồn tại"});
         }
         if(existiingPhonenum){
-            return  res.status(400).json({message: "Số điện thoại đã tồn tại"});
+            return res.status(400).json({message: "Số điện thoại đã tồn tại"});
         }
         if(existingEmail){
-            return  res.status(400).json({message: "Email đã tồn tại"});
+            return res.status(400).json({message: "Email đã tồn tại"});
         }
+
+        // const otp = generateOTP();
+        // const otpExpiry = new Date(Date.now() + 10 * 60 * 1000);
         
         const encyptPassword = await bcrypt.hash(password, 10);
         signupData.password = encyptPassword;
 
         const newUser = new User(signupData);
         await newUser.save();
+
+        await transporter.sendMail({
+          from: 'lekhanh98777@gmail.com',
+          to: email,
+          subject: 'MOODY BLUE Authentication OTP',
+          text: `Your OTP code is: ${signupData.otp}. It is valid for 10 minutes.`
+        });
+
         console.log('User created successfully:', newUser);
         res.status(201).json({
             success: true,
-            message: 'User created successfully',
+            message: 'User registered successfully, please verify OTP sent to your email',
             data: newUser
         });
     }
@@ -185,6 +213,63 @@ exports.userSignUp = async (req, res) => {
         // @ts-ignore
         res.status(500).json({message: err.message || "lỗi server"});
     }
+}
+
+// @ts-ignore
+exports.verifyOTP = async (req, res) => {
+  try{
+    const {email, otp} = req.body;
+    const user = await User.findOne({email});
+
+    if(!user){
+      return res.status(400).json({message: "Không tìm thấy user"});
+    }
+    if(user.isVerified){
+      return res.status(400).json({message: "tài khoản đã được xác thực"});
+    }
+    // @ts-ignore
+    if(user.otp !== otp || user.otpExpiry < new Date()){
+      return res.status(400).json({message: "OTP không hợp lệ hoặc đã hết hạn"});
+    }
+
+    user.isVerified = true;
+    user.otp = undefined;
+    user.otpExpiry = undefined;
+    await user.save();
+
+    res.json({message: "Tài khoản đã được xác thực, xin mời đăng nhập"})
+  }
+  catch(err){
+    res.status(500).json({message: "Xảy ra lỗi khi xác thực OTP"})
+  }
+}
+
+// @ts-ignore
+exports.resendOTP = async (req, res) => {
+  try{
+    const {email} = req.body;
+    const user = await User.findOne({email});
+
+    if(!user) return res.status(400).json({message: "Không tìm thấy user"});
+    // @ts-ignore
+    if(user.isVerified) return res.status(400).json({message: "Tài khoản đã được xác thực"});
+
+    const otp = generateOTP();
+    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000);
+    await user.save();
+
+    await transporter.sendMail({
+        from: 'lekhanh98777@gmail.com',
+        to: email,
+        subject: 'MOODY BLUE resend Authentication OTP',
+        text: `Your OTP code is: ${otp}. It is valid for 10 minutes.`
+      });
+
+    res.json({message: "OTP đã được gửi lại thành công"});
+  }
+  catch(err){
+    res.status(500).json({message: "Xảy ra lỗi khi gửi lại OTP"})
+  }
 }
 
 // @ts-ignore
@@ -198,16 +283,31 @@ exports.userLogin = async (req, res) => {
 
         // @ts-ignore
         const passwordCheck = await bcrypt.compare(password, checkUser.password);
-        if(passwordCheck){
-            return res.status(200).json({message: `chào mừng đăng nhập ${username}`, data: checkUser});
-        }
-        else{
+        if(!passwordCheck){
             return res.status(401).json({message: "Mật khẩu không đúng"});
         }
+        if(!checkUser.isVerified){
+            return res.status(401).json({message: "Tài khoản chưa được xác thực"});
+        }
+
+        req.session.user = checkUser;
+        
+        return res.status(200).json({message: `chào mừng đăng nhập ${username}`, data: checkUser});
+        
     }
     catch(err){
-
+       // @ts-ignore
+      res.status(500).json({message: err.message || "lỗi server"});
     }
+}
+
+// @ts-ignore
+exports.userLogout = async (req, res) => {
+  // @ts-ignore
+  req.session.destroy((err) => {
+    if(err) return res.status(500).json({message: "Lỗi khi đăng xuất"});
+    res.json({message: "Đăng xuất thành công"});
+  })
 }
 
 // @ts-ignore
