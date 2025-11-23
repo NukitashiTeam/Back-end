@@ -301,6 +301,85 @@ router.post('/signup', UserController.userSignUp);
 
 /**
  * @swagger
+ * /api/user/signup/step1:
+ *   post:
+ *     summary: Bước 1 - Tạo tài khoản, nhập username và password
+ *     tags: [User]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               username:
+ *                 type: string
+ *                 example: testuser
+ *               password:
+ *                 type: string
+ *                 example: password123
+ *               passwordConfirm:
+ *                 type: string
+ *                 example: password123
+ *     responses:
+ *       200:
+ *         description: Thành công - Chuyển sang bước tiếp theo
+ *       400:
+ *         description: Lỗi xác thực
+ */
+router.post('/signup/step1', UserController.signUpStepOne);
+
+/**
+ * @swagger
+ * /api/user/signup/step2:
+ *   post:
+ *     summary: Bước 2 - Chọn phương thức nhận OTP
+ *     tags: [User]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               otpMethod:
+ *                 type: string
+ *                 enum: [email, sms]
+ *                 example: email
+ *     responses:
+ *       200:
+ *         description: Phương thức đã được lưu
+ *       400:
+ *         description: Lỗi xác thực
+ */
+router.post('/signup/step2', UserController.signUpStepTwo);
+
+/**
+ * @swagger
+ * /api/user/signup/step3:
+ *   post:
+ *     summary: Bước 3 - Điền thông tin liên lạc để nhận OTP
+ *     tags: [User]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               contact:
+ *                 type: string
+ *                 example: test@example.com
+ *     responses:
+ *       200:
+ *         description: Đã gửi OTP
+ *       400:
+ *         description: Lỗi xác thực
+ */
+router.post('/signup/step3', UserController.signUpStepThree);
+
+/**
+ * @swagger
  * /api/user/verifyOTP:
  *   post:
  *     tags:
@@ -374,14 +453,6 @@ router.post('/verifyOTP', UserController.verifyOTP);
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - email
- *             properties:
- *               email:
- *                 type: string
- *                 format: email
- *                 description: Email của người dùng
- *                 example: "user@example.com"
  *     responses:
  *       200:
  *         description: Gửi OTP thành công

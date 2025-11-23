@@ -6,9 +6,18 @@ const bcrypt = require('bcryptjs');
 const path = require('path');
 const nodemailer = require('nodemailer');
 const crypto = require('crypto');
+const twilio = require('twilio');
 
 
 const User = require('../Model/UserSchema'); // import UserSchema
+
+require('dotenv').config();
+
+const accountID = process.env.TWILIO_ACCOUNT_SID;
+const authToken = process.env.TWILIO_AUTH_TOKEN;
+//const verificationSID = process.env.VERIFICATION_SID;
+
+const client = twilio(accountID, authToken);
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -20,6 +29,35 @@ const transporter = nodemailer.createTransport({
 
 const generateOTP = () => {
   return crypto.randomInt(1000, 9999).toString();
+}
+
+// @ts-ignore
+const sendOTPbySMS = async (otp, phoneNumber) => {
+  try{
+    await client.messages.create({
+      body: `your OTP code is ${otp}`,
+      to: phoneNumber,
+      from: process.env.TWILIO_PHONE_NUMBER
+    })
+  }
+  catch(err){
+    console.error("lỗi gửi OTP qua SMS", err);
+  }
+}
+
+// @ts-ignore
+const sendOTPbyEmail = async (otp, email) => {
+  try{
+    await transporter.sendMail({
+      from: 'lekhanh98777@gmail.com',
+      to: email,
+      subject: 'MOODY BLUE Authentication OTP',
+      text: `Your OTP code is: ${otp}. It is valid for 10 minutes.`
+    });
+  }
+  catch(err){
+    console.error("lỗi gửi OTP qua SMS", err);
+  }
 }
 
 // @ts-ignore
@@ -160,7 +198,25 @@ exports.createUser = async (req, res) => {
 // @ts-ignore
 exports.userSignUp = async (req, res) => {
     try{
-        const { username, phone, email, password } = req.body;
+        const { username, phone, email, password, otpMethod} = req.body;
+
+        if (!username || !password || !otpMethod) {
+            return res.status(400).json({
+                message: "Thiếu thông tin bắt buộc"
+            });
+        }
+
+        if (otpMethod === 'email' && !email) {
+            return res.status(400).json({
+                message: "Email là bắt buộc khi chọn phương thức email"
+            });
+        }
+
+        if (otpMethod === 'sms' && !phone) {
+            return res.status(400).json({
+                message: "Số điện thoại là bắt buộc khi chọn phương thức SMS"
+            });
+        }
 
         const signupData = {
             username: username,
@@ -179,28 +235,27 @@ exports.userSignUp = async (req, res) => {
         if(existingUsername){
             return res.status(400).json({message: "Username đã tồn tại"});
         }
-        if(existiingPhonenum){
+        if(otpMethod === 'sms' && existiingPhonenum){
             return res.status(400).json({message: "Số điện thoại đã tồn tại"});
         }
-        if(existingEmail){
+        if(otpMethod === 'email' &&existingEmail){
             return res.status(400).json({message: "Email đã tồn tại"});
         }
 
-        // const otp = generateOTP();
-        // const otpExpiry = new Date(Date.now() + 10 * 60 * 1000);
         
         const encyptPassword = await bcrypt.hash(password, 10);
         signupData.password = encyptPassword;
 
         const newUser = new User(signupData);
         await newUser.save();
+        
+        if(otpMethod === 'sms'){
+            await sendOTPbySMS(signupData.otp, phone);
+        }
 
-        await transporter.sendMail({
-          from: 'lekhanh98777@gmail.com',
-          to: email,
-          subject: 'MOODY BLUE Authentication OTP',
-          text: `Your OTP code is: ${signupData.otp}. It is valid for 10 minutes.`
-        });
+        if(otpMethod === 'email'){
+            await sendOTPbyEmail(signupData.otp, email);
+        }
 
         console.log('User created successfully:', newUser);
         res.status(201).json({
@@ -213,6 +268,141 @@ exports.userSignUp = async (req, res) => {
         // @ts-ignore
         res.status(500).json({message: err.message || "lỗi server"});
     }
+}
+
+// Bước 1 của việc đăng ký - điền tài khoản và mật khẩu rồi lưu vào session
+// @ts-ignore
+exports.signUpStepOne = async (req, res) => {
+  try{
+    const {username, password, passwordConfirm} = req.body
+
+    if(!username || !password || !passwordConfirm){
+      return res.status(400).json({message: "Vui lòng điền đầy đủ thông tin cần thiết"});
+    }
+
+    if(password.length < 6){
+      return res.status(400).json({message: "Mật khẩu phải có ít nhất 6 ký tự"});
+    }
+
+    if(password !== passwordConfirm){
+      return res.status(400).json({message: "Mật khẩu không giống với xác nhận"});
+    }
+
+    req.session.signupData = {
+        username,
+        password: await bcrypt.hash(password, 10)
+    };
+    
+    return res.status(200).json({message: "Bước 1 hoàn tất"});
+  }
+  catch(err){
+    // @ts-ignore
+    res.status(500).json({message: err.message || "lỗi server"});
+  }
+}
+
+// @ts-ignore
+exports.signUpStepTwo = async (req, res) => {
+  try{
+    const { otpMethod } = req.body;
+
+    if (!req.session.signupData) {
+        return res.status(400).json({
+            message: "Vui lòng hoàn tất bước 1 trước"
+        });
+    }
+
+    if (!otpMethod || !['email', 'sms'].includes(otpMethod)) {
+        return res.status(400).json({
+            message: "Phương thức phải là 'email' hoặc 'sms'"
+        })
+    };
+
+    req.session.signupData.otpMethod = otpMethod;
+    return res.status(200).json({message: "Bước 2 hoàn tất"});
+  }
+  catch(err){
+    // @ts-ignore
+    res.status(500).json({message: err.message || "lỗi server"});
+  }
+}
+
+// @ts-ignore
+exports.signUpStepThree = async (req, res) => {
+  try{
+    const {contact} = req.body
+
+    if(!req.session.signupData || !req.session.signupData.otpMethod){
+      return res.status(400).json({message: "Vui lòng hoàn tất bước 1 và 2 trước"});
+    }
+
+    const {username, password, otpMethod} = req.session.signupData;
+
+    if(!contact){
+      return res.status(400).json({message: "Vui lòng cung cấp thông tin liên lạc trước"})
+    }
+
+    if(otpMethod === 'sms'){
+      const existingPhone = await User.findOne({ phone: contact });
+      if (existingPhone) {
+          return res.status(400).json({
+              message: "Số điện thoại đã tồn tại"
+          });
+      }
+    }
+    else{
+      const existingEmail = await User.findOne({ email: contact });
+      if (existingEmail) {
+          return res.status(400).json({
+              message: "Email đã tồn tại"
+          });
+      }
+    }
+
+    const otp = generateOTP();
+    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000);
+
+    const userData = {
+        username,
+        password,
+        isVerified: false,
+        otp,
+        otpMethod,
+        otpExpiry
+    };
+
+    if (otpMethod === 'email') {
+        // @ts-ignore
+        userData.email = contact;
+        // @ts-ignore
+        userData.phone = null;
+    } else {
+        // @ts-ignore
+        userData.phone = contact;
+        // @ts-ignore
+        userData.email = null;
+    }
+
+      const newUser = new User(userData);
+
+      await newUser.save();
+      if (otpMethod === 'email') {
+          await sendOTPbyEmail(otp, contact);
+      } else {
+          await sendOTPbySMS(otp, contact);
+      }
+
+      req.session.signupData.contact = contact;
+      req.session.signupData.userId = newUser._id.toString();
+
+      res.status(200).json({
+          message: `OTP đã được gửi đến ${otpMethod === 'email' ? 'email' : 'số điện thoại'} của bạn`
+      });
+  }
+  catch(err){
+    // @ts-ignore
+    res.status(500).json({message: err.message || "lỗi server"});
+  }
 }
 
 // @ts-ignore
@@ -234,8 +424,11 @@ exports.verifyOTP = async (req, res) => {
 
     user.isVerified = true;
     user.otp = undefined;
+    user.otpMethod = undefined;
     user.otpExpiry = undefined;
     await user.save();
+
+    req.session.signupData = null;
 
     res.json({message: "Tài khoản đã được xác thực, xin mời đăng nhập"})
   }
@@ -247,9 +440,15 @@ exports.verifyOTP = async (req, res) => {
 // @ts-ignore
 exports.resendOTP = async (req, res) => {
   try{
-    const {email} = req.body;
-    const user = await User.findOne({email});
+    const otpMethod = req.session.signupData.otpMethod 
+    const contact = req.session.signupData.contact;
 
+    let user = null;
+
+    if(otpMethod === 'sms') user = await User.findOne({phone: contact});
+    else user = await User.findOne({email: contact});
+    
+      
     if(!user) return res.status(400).json({message: "Không tìm thấy user"});
     // @ts-ignore
     if(user.isVerified) return res.status(400).json({message: "Tài khoản đã được xác thực"});
@@ -258,12 +457,11 @@ exports.resendOTP = async (req, res) => {
     const otpExpiry = new Date(Date.now() + 10 * 60 * 1000);
     await user.save();
 
-    await transporter.sendMail({
-        from: 'lekhanh98777@gmail.com',
-        to: email,
-        subject: 'MOODY BLUE resend Authentication OTP',
-        text: `Your OTP code is: ${otp}. It is valid for 10 minutes.`
-      });
+    if (otpMethod === 'email') {
+        await sendOTPbyEmail(otp, contact);
+    } else {
+        await sendOTPbySMS(otp, contact);
+    }
 
     res.json({message: "OTP đã được gửi lại thành công"});
   }

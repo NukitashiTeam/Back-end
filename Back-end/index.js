@@ -2,9 +2,7 @@ const express = require('express');
 const app = express();
 const port = process.env.PORT || 3000;
 const bodyParser = require('body-parser');
-const axios = require('axios');
-const fs = require('fs');
-const path = require('path');
+const session = require('express-session');
 const cors = require('cors');
 app.use(cors()); 
 
@@ -14,12 +12,26 @@ const swaggerJSDoc = require("swagger-jsdoc");
 
 require('dotenv').config();
 
+app.use(session({
+  // @ts-ignore
+    secret: process.env.SESSION_SECRET,
+    resave: false,
+    saveUninitialized: true,
+    cookie: { 
+        maxAge: 30 * 60 * 1000, // 30 phút
+        httpOnly: true,
+        secure: false 
+    }
+}));
+
+
 const connectDB = require('./database');
 // const Music = require('./Model/MusicSchema');
 // const User = require('./Model/UserSchema');
 
 const userRouter = require('./Router/UserRouter');
 const musicRouter = require('./Router/MusicRouter');
+const moodRouter = require('./Router/MoodRouter');
 
 const specs = swaggerJSDoc(option);
 app.set("trust proxy", 1);
@@ -48,6 +60,7 @@ app.get('/', (req, res) => {
 
 app.use('/api/music', musicRouter);
 app.use('/api/user', userRouter); 
+app.use('/api/mood', moodRouter);
 
 app.use(cors({
   origin: [

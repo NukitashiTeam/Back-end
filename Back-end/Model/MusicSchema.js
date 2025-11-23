@@ -11,7 +11,8 @@ const MusicSchema = new mongoose.Schema({
     image_url: String,
     is_premium: Boolean,
     release_date: Date,
-    mood: String,
+    mood: [{ type: mongoose.Schema.Types.ObjectId,
+    ref: 'Mood'}],
 });
 
 module.exports = mongoose.model('Music', MusicSchema, 'Musics');

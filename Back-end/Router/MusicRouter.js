@@ -4,6 +4,7 @@ const router = express.Router();
 
 const MusicController = require('../Controller/MusicController');
 
+
 // Gán controller vào router
 
 //Kiểm tra bài hát trên itunes
@@ -49,7 +50,6 @@ const MusicController = require('../Controller/MusicController');
  *       500:
  *         description: Server Error
  */
-
 router.get('/preview', MusicController.checkMusicInItunes);
 
 /**
@@ -71,10 +71,6 @@ router.get('/preview', MusicController.checkMusicInItunes);
  *       500:
  *         description: Server Error
  */
-router.get('/music-list', MusicController.getAllMusic);
-
-// Tìm kiếm bài hát
-
 router.get('/music-list', MusicController.getAllMusic);
 
 //Tìm kiếm theo ID bài hát

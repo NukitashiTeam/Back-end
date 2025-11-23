@@ -4,7 +4,9 @@ const axios = require('axios');
 const fs = require('fs');
 const path = require('path');
 
+const { mapGenreToMoods } = require('../Middleware/MoodMapping');
 const Music = require('../Model/MusicSchema'); // import MusicSchema
+
 
 // @ts-ignore
 exports.checkMusicInItunes = async (req, res) => {
@@ -16,22 +18,31 @@ exports.checkMusicInItunes = async (req, res) => {
     const response = await axios.get(url);
     const results = response.data.results;
 
-    // @ts-ignore
-    const musics = results.map(track => ({
-      track_id: track.trackId.toString(),
-      title: track.trackName,
-      artist: track.artistName,
-      album: track.collectionName,
-      genre: track.primaryGenreName,
-      mp3_url: track.previewUrl,
-      image_url: track.artworkUrl100,
-      is_premium: track.trackPrice > 0, // ví dụ: >0 là premium
-      release_date: track.releaseDate,
-      mood: '',
-    }));
+    const musicsWithMood = await Promise.all(
+      // @ts-ignore
+      results.map(async (track) => {
+    
+        const genre = track.primaryGenreName || 'Pop';
+    
+        const moods = await mapGenreToMoods(genre);
+        
+        return {
+          track_id: track.trackId.toString(),
+          title: track.trackName,
+          artist: track.artistName,
+          album: track.collectionName,
+          genre: genre,
+          mp3_url: track.previewUrl,
+          image_url: track.artworkUrl100,
+          is_premium: track.trackPrice > 0,
+          release_date: track.releaseDate,
+          moods: moods,           // ← Thêm moods vào đây
+        };
+      })
+    );
 
     // Chỉ trả về preview, chưa lưu
-    res.status(200).json({ message: 'Dữ liệu preview', preview: musics });
+    res.status(200).json({ message: 'Dữ liệu preview', preview: musicsWithMood});
 
 
   } catch (err) {
@@ -40,6 +51,10 @@ exports.checkMusicInItunes = async (req, res) => {
   }
 }
 
+// @ts-ignore
+exports.checkMusicBaseOnArtist = async (req, res) => {
+
+}
 
 // @ts-ignore
 exports.addMusicsAfterReview = async (req, res) => {
@@ -53,7 +68,6 @@ exports.addMusicsAfterReview = async (req, res) => {
   }
 };
 
-
 // @ts-ignore
 exports.addMusics = async (req, res) => {
   try {
@@ -66,26 +80,37 @@ exports.addMusics = async (req, res) => {
     const results = response.data.results;
 
     // @ts-ignore
-    const musics = results.map(track => ({
-      track_id: track.trackId.toString(),
-      title: track.trackName,
-      artist: track.artistName,
-      album: track.collectionName,
-      genre: track.primaryGenreName,
-      mp3_url: track.previewUrl,
-      image_url: track.artworkUrl100,
-      is_premium: track.trackPrice > 0, // ví dụ: >0 là premium
-      release_date: track.releaseDate,
-      mood: '',
-    }));
+    const musicsWithMood = await Promise.all(
+      // @ts-ignore
+      results.map(async (track) => {
+    
+        const genre = track.primaryGenreName || 'Pop';
+    
+        const moods = await mapGenreToMoods(genre);
+        
+        return {
+          track_id: track.trackId.toString(),
+          title: track.trackName,
+          artist: track.artistName,
+          album: track.collectionName,
+          genre: genre,
+          mp3_url: track.previewUrl,
+          image_url: track.artworkUrl100,
+          is_premium: track.trackPrice > 0,
+          release_date: track.releaseDate,
+          moods: moods,           // ← Thêm moods vào đây
+        };
+      })
+    );
+
 
     // Lưu vào MongoDB
-    const inserted = await Music.insertMany(musics);
+    const inserted = await Music.insertMany(musicsWithMood);
 
   
     res.status(200).json({
       message: 'Thêm nhạc thành công',
-      data: inserted,
+      data: musicsWithMood,
     });
 
     
@@ -94,7 +119,6 @@ exports.addMusics = async (req, res) => {
     res.status(500).json({ message: 'Server Error' });
   }
 };
-
 
 // @ts-ignore
 exports.getAllMusic = async (req, res) => {
@@ -106,7 +130,6 @@ exports.getAllMusic = async (req, res) => {
     res.status(500).json({ message: 'Server Error' });
   }
 };
-
 
 // @ts-ignore
 exports.getMusicById = async (req, res) => {
