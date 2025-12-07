@@ -3,12 +3,14 @@ const app = express();
 const port = process.env.PORT || 3000;
 const bodyParser = require('body-parser');
 const session = require('express-session');
+const cookieParser = require('cookie-parser');
 const cors = require('cors');
 app.use(cors()); 
 
 const swaggerUi = require('swagger-ui-express');
 const option = require("./swagger");
 const swaggerJSDoc = require("swagger-jsdoc");
+app.use(cookieParser());
 
 require('dotenv').config();
 

@@ -1,3 +1,4 @@
+// @ts-nocheck
 const express = require('express');
 const router = express.Router();
 const axios = require('axios');
@@ -7,8 +8,9 @@ const path = require('path');
 const nodemailer = require('nodemailer');
 const crypto = require('crypto');
 const twilio = require('twilio');
+const jwt = require('jsonwebtoken');
 
-
+const {generateAccessToken, generateRefreshToken} = require('../Middleware/auth.js')
 const User = require('../Model/UserSchema'); // import UserSchema
 
 require('dotenv').config();
@@ -31,7 +33,6 @@ const generateOTP = () => {
   return crypto.randomInt(1000, 9999).toString();
 }
 
-// @ts-ignore
 const sendOTPbySMS = async (otp, phoneNumber) => {
   try{
     await client.messages.create({
@@ -45,7 +46,6 @@ const sendOTPbySMS = async (otp, phoneNumber) => {
   }
 }
 
-// @ts-ignore
 const sendOTPbyEmail = async (otp, email) => {
   try{
     await transporter.sendMail({
@@ -60,7 +60,6 @@ const sendOTPbyEmail = async (otp, email) => {
   }
 }
 
-// @ts-ignore
 exports.getAllUsers = async (req, res) => {
     try{
         const users = await User.find();
@@ -72,7 +71,6 @@ exports.getAllUsers = async (req, res) => {
     }
 }
 
-// @ts-ignore
 exports.getUserById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -99,7 +97,6 @@ exports.getUserById = async (req, res) => {
   }
 }
 
-// @ts-ignore
 exports.createUser = async (req, res) => {
   try {
     const { provider, phone, email, name, password, avatar, role } = req.body;
@@ -195,7 +192,6 @@ exports.createUser = async (req, res) => {
   }
 };
 
-// @ts-ignore
 exports.userSignUp = async (req, res) => {
     try{
         const { username, phone, email, password, otpMethod} = req.body;
@@ -271,7 +267,6 @@ exports.userSignUp = async (req, res) => {
 }
 
 // Bước 1 của việc đăng ký - điền tài khoản và mật khẩu rồi lưu vào session
-// @ts-ignore
 exports.signUpStepOne = async (req, res) => {
   try{
     const {username, password, passwordConfirm} = req.body
@@ -296,12 +291,10 @@ exports.signUpStepOne = async (req, res) => {
     return res.status(200).json({message: "Bước 1 hoàn tất"});
   }
   catch(err){
-    // @ts-ignore
     res.status(500).json({message: err.message || "lỗi server"});
   }
 }
 
-// @ts-ignore
 exports.signUpStepTwo = async (req, res) => {
   try{
     const { otpMethod } = req.body;
@@ -327,7 +320,6 @@ exports.signUpStepTwo = async (req, res) => {
   }
 }
 
-// @ts-ignore
 exports.signUpStepThree = async (req, res) => {
   try{
     const {contact} = req.body
@@ -374,13 +366,9 @@ exports.signUpStepThree = async (req, res) => {
     if (otpMethod === 'email') {
         // @ts-ignore
         userData.email = contact;
-        // @ts-ignore
-        userData.phone = null;
     } else {
         // @ts-ignore
         userData.phone = contact;
-        // @ts-ignore
-        userData.email = null;
     }
 
       const newUser = new User(userData);
@@ -405,11 +393,14 @@ exports.signUpStepThree = async (req, res) => {
   }
 }
 
-// @ts-ignore
 exports.verifyOTP = async (req, res) => {
   try{
-    const {email, otp} = req.body;
-    const user = await User.findOne({email});
+    const {contact, otpMethod} = req.session.signupData
+    const {otp} = req.body;
+    let user = null
+    if(otpMethod === 'email') user = await User.findOne({email: contact});
+    else user = await User.findOne({phone: contact})
+    // const user = await User.findOne({email});
 
     if(!user){
       return res.status(400).json({message: "Không tìm thấy user"});
@@ -426,6 +417,7 @@ exports.verifyOTP = async (req, res) => {
     user.otp = undefined;
     user.otpMethod = undefined;
     user.otpExpiry = undefined;
+
     await user.save();
 
     req.session.signupData = null;
@@ -437,7 +429,6 @@ exports.verifyOTP = async (req, res) => {
   }
 }
 
-// @ts-ignore
 exports.resendOTP = async (req, res) => {
   try{
     const otpMethod = req.session.signupData.otpMethod 
@@ -470,7 +461,6 @@ exports.resendOTP = async (req, res) => {
   }
 }
 
-// @ts-ignore
 exports.userLogin = async (req, res) => {
     try{
         const {username, password} = req.body;
@@ -479,7 +469,6 @@ exports.userLogin = async (req, res) => {
             return res.status(404).json({message: "Không tìm thấy user"});
         }
 
-        // @ts-ignore
         const passwordCheck = await bcrypt.compare(password, checkUser.password);
         if(!passwordCheck){
             return res.status(401).json({message: "Mật khẩu không đúng"});
@@ -488,27 +477,105 @@ exports.userLogin = async (req, res) => {
             return res.status(401).json({message: "Tài khoản chưa được xác thực"});
         }
 
-        req.session.user = checkUser;
-        
-        return res.status(200).json({message: `chào mừng đăng nhập ${username}`, data: checkUser});
-        
+        // 1. TẠO TOKENS
+        const accessToken = generateAccessToken(checkUser);
+        const refreshToken = generateRefreshToken(checkUser);
+
+        checkUser.refreshToken = refreshToken;
+        await checkUser.save();
+
+        // req.session.user = checkUser;
+
+        res.cookie('refreshToken', refreshToken, {
+            httpOnly: true, // Bảo mật: không thể truy cập bằng JS
+            secure: process.env.NODE_ENV === 'production', 
+            path: '/',
+            sameSite: 'strict',
+            maxAge: 7 * 24 * 60 * 60 * 1000
+        });
+
+        // 4. TRẢ VỀ ACCESS TOKEN
+        return res.status(200).json({
+            message: `Chào mừng đăng nhập ${username}`,
+            data: {
+                accessToken: accessToken,
+                user: checkUser
+            }
+        });
     }
     catch(err){
-       // @ts-ignore
       res.status(500).json({message: err.message || "lỗi server"});
     }
 }
 
-// @ts-ignore
+// // @ts-ignore
+// exports.userLogout = async (req, res) => {
+//   // @ts-ignore
+//   req.session.destroy((err) => {
+//     if(err) return res.status(500).json({message: "Lỗi khi đăng xuất"});
+//     res.json({message: "Đăng xuất thành công"});
+//   })
+// }
+
 exports.userLogout = async (req, res) => {
-  // @ts-ignore
-  req.session.destroy((err) => {
-    if(err) return res.status(500).json({message: "Lỗi khi đăng xuất"});
-    res.json({message: "Đăng xuất thành công"});
-  })
+    try {
+        const refreshToken = req.cookies.refreshToken;
+        
+        if (!refreshToken) {
+            res.clearCookie('refreshToken', { 
+                httpOnly: true, 
+                secure: process.env.NODE_ENV === 'production', 
+                path: '/',
+                sameSite: 'strict',
+            });
+            return res.status(200).json({ message: "Đăng xuất thành công" });
+        }
+        const user = await User.findOne({ refreshToken: refreshToken });
+        
+        if (user) {
+            user.refreshToken = null;
+            await user.save();
+        }
+
+        res.clearCookie('refreshToken', { 
+            httpOnly: true, 
+            secure: process.env.NODE_ENV === 'production', 
+            path: '/',
+            sameSite: 'strict',
+        });
+
+        res.status(200).json({ message: "Đăng xuất thành công" });
+
+    } catch (err) {
+        console.error("Lỗi khi đăng xuất:", err);
+        res.status(500).json({ message: err.message || "Lỗi server khi đăng xuất" });
+    }
 }
 
-// @ts-ignore
+exports.readUser = async (req, res) => {
+  const userId = req.user._id;
+
+  try{
+    const user = await User.findById(userId).select('-password -refreshToken -__v');
+
+    if (!user) {
+        return res.status(404).json({ message: "Người dùng không tồn tại hoặc đã bị xóa." });
+    }
+
+    // 4. Trả về dữ liệu người dùng (dữ liệu sạch)
+    // Các trường như username, email, name, role, avatar,... sẽ được trả về.
+    res.status(200).json({ 
+        message: "Lấy dữ liệu người dùng thành công",
+        data: user 
+    });
+  }
+  catch(err){
+    console.error("Lỗi khi lấy dữ liệu người dùng:", err);
+    res.status(500).json({ message: "Lỗi server khi lấy dữ liệu người dùng" });
+  }
+
+}
+
 exports.updateUser = async (req, res) => {
   try {
     const { id } = req.params;
@@ -587,7 +654,6 @@ exports.updateUser = async (req, res) => {
   }
 };
 
-// @ts-ignore
 exports.deleteUser = async (req, res) => {
   try {
     const { id } = req.params;

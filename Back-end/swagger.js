@@ -81,9 +81,21 @@ const option = {
                         release_date: { type: 'string', format: 'date-time', example: '2015-10-23T07:00:00Z' },
                         mood: { type: 'string', example: '' }
                     }
-                }
-            }
-        }
+                },
+            },
+            securitySchemes: {
+                bearerAuth: {
+                type: "http",
+                scheme: "bearer",
+                bearerFormat: "JWT",
+                },
+            },
+        },
+        security: [
+            {
+                bearerAuth: [],
+            },
+        ],
 
     },
     apis: ['./Router/*.js']

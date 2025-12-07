@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 
 const UserController = require('../Controller/UserController');
+const { authenticationToken, generateAccessToken, generateRefreshToken} = require('../Middleware/auth.js')
 
 // Gán controller vào router
 
@@ -101,7 +102,85 @@ router.get('/users', UserController.getAllUsers);
  *       500:
  *         description: Lỗi server
  */
-router.get('/user/:id', UserController.getUserById);
+router.get('/user/:id', authenticationToken, UserController.getUserById);
+
+/**
+ * @swagger
+ * /api/user/self:
+ *   get:
+ *     tags:
+ *       - User
+ *     summary: Lấy thông tin người dùng hiện tại
+ *     description: Trả về dữ liệu user dựa trên access token (không bao gồm password, refreshToken và __v).
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Lấy dữ liệu người dùng thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Lấy dữ liệu người dùng thành công"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     _id:
+ *                       type: string
+ *                       example: "67a0bc123f1d932d1a45b9f0"
+ *                     username:
+ *                       type: string
+ *                       example: johndoe
+ *                     email:
+ *                       type: string
+ *                       example: johndoe@gmail.com
+ *                     name:
+ *                       type: string
+ *                       example: John Doe
+ *                     role:
+ *                       type: string
+ *                       example: user
+ *                     avatar:
+ *                       type: string
+ *                       example: "https://example.com/avatar.png"
+ *                     createdAt:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2025-01-05T10:20:30.000Z"
+ *                     updatedAt:
+ *                       type: string
+ *                       format: date-time
+ *                       example: "2025-01-10T11:00:00.000Z"
+ *
+ *       401:
+ *         description: Không có token hoặc token không hợp lệ
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Token không hợp lệ hoặc đã hết hạn"
+ *
+ *       404:
+ *         description: Người dùng không tồn tại
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ */
+router.get('/self', authenticationToken, UserController.readUser);
 
 /**
  * @swagger
@@ -393,18 +472,12 @@ router.post('/signup/step3', UserController.signUpStepThree);
  *           schema:
  *             type: object
  *             required:
- *               - email
  *               - otp
  *             properties:
- *               email:
- *                 type: string
- *                 format: email
- *                 description: Email của người dùng
- *                 example: "user@example.com"
  *               otp:
  *                 type: string
  *                 description: Mã OTP gửi về email
- *                 example: "890612"
+ *                 example: "6969"
  *     responses:
  *       200:
  *         description: Xác thực thành công

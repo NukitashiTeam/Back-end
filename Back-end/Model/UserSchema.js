@@ -2,8 +2,8 @@ const mongoose = require('mongoose');
 
 const UserSchema = new mongoose.Schema({
   // provider: { type: String, enum: ['phone', 'google', 'facebook'], default: 'phone' }, // Kiểu đăng nhập
-  phone: { type: String, unique: true, sparse: true },
-  email: { type: String, unique: true, sparse: true },
+  phone: { type: String, unique: true, sparse: true, default: null},
+  email: { type: String, unique: true, sparse: true, default: null},
   username: { type: String, required: true },
   password: { type: String }, 
   otp: { type: String },
