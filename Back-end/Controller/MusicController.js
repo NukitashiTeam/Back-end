@@ -53,7 +53,53 @@ exports.checkMusicInItunes = async (req, res) => {
 
 // @ts-ignore
 exports.checkMusicBaseOnArtist = async (req, res) => {
+  try{
+    const {artistName, limit} = req.query;
+    if(!artistName) return res.status(400).json({message: "the artist's name is not found"})
 
+    const songLimit = limit || 1;
+
+    const url = `https://itunes.apple.com/search?term=${encodeURIComponent(artistName)}&entity=musicTrack&attribute=artistTerm&limit=${songLimit}`;
+
+    console.log(`🎤 Searching Artist: ${artistName}`);
+    const response = await axios.get(url);
+
+    const results = response.data.results;
+
+    const musicsWithMood = await Promise.all(
+      // @ts-ignore
+      results.map(async (track) => {
+    
+        const genre = track.primaryGenreName || 'Pop';
+    
+        const moods = await mapGenreToMoods(genre);
+        
+        return {
+          track_id: track.trackId.toString(),
+          title: track.trackName,
+          artist: track.artistName,
+          album: track.collectionName,
+          genre: genre,
+          mp3_url: track.previewUrl,
+          image_url: track.artworkUrl100,
+          is_premium: track.trackPrice > 0,
+          release_date: track.releaseDate,
+          moods: moods,           
+        };
+      })
+    );
+
+    res.status(200).json({
+        message: 'Kết quả tìm kiếm bài hát',
+        count: musicsWithMood.length,
+        data: musicsWithMood
+    });
+
+  }
+  catch(err){
+    console.error('Search Song Error:', err);
+    res.status(500).json({ message: 'Lỗi server khi tìm bài hát' });
+  }
 }
 
 // @ts-ignore
@@ -110,7 +156,7 @@ exports.addMusics = async (req, res) => {
   
     res.status(200).json({
       message: 'Thêm nhạc thành công',
-      data: musicsWithMood,
+      data: inserted,
     });
 
     

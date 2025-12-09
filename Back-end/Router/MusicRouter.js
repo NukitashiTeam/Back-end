@@ -10,7 +10,7 @@ const MusicController = require('../Controller/MusicController');
 //Kiểm tra bài hát trên itunes
 /**
  * @swagger
- * /api/music/preview:
+ * /api/music/preview/name:
  *   get:
  *     tags:
  *       - Music
@@ -50,7 +50,58 @@ const MusicController = require('../Controller/MusicController');
  *       500:
  *         description: Server Error
  */
-router.get('/preview', MusicController.checkMusicInItunes);
+router.get('/preview/name', MusicController.checkMusicInItunes);
+
+/**
+ * @swagger
+ * /api/music/preview/artist:
+ *   get:
+ *     tags:
+ *       - Music
+ *     summary: Tìm bài hát theo tên nghệ sĩ (iTunes API)
+ *     description: Gửi request đến iTunes để lấy danh sách bài hát theo tên nghệ sĩ, kèm mood mapping.
+ *     parameters:
+ *       - in: query
+ *         name: artistName
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Tên nghệ sĩ cần tìm
+ *
+ *       - in: query
+ *         name: limit
+ *         required: false
+ *         schema:
+ *           type: integer
+ *           example: 5
+ *         description: Giới hạn số bài hát trả về
+ *
+ *     responses:
+ *       200:
+ *         description: Kết quả tìm kiếm bài hát
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Kết quả tìm kiếm bài hát
+ *                 count:
+ *                   type: integer
+ *                   example: 3
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/MusicTrack'
+ *
+ *       400:
+ *         description: Thiếu artistName
+ *
+ *       500:
+ *         description: Lỗi server
+ */
+router.get('/preview/artist', MusicController.checkMusicBaseOnArtist);
 
 /**
  * @swagger
