@@ -32,9 +32,9 @@ exports.checkMusicInItunes = async (req, res) => {
           artist: track.artistName,
           album: track.collectionName,
           genre: genre,
+          duration: Math.floor(track.trackTimeMillis / 1000),
           mp3_url: track.previewUrl,
           image_url: track.artworkUrl100,
-          is_premium: track.trackPrice > 0,
           release_date: track.releaseDate,
           moods: moods,           // ← Thêm moods vào đây
         };
@@ -117,7 +117,7 @@ exports.addMusicsAfterReview = async (req, res) => {
 // @ts-ignore
 exports.addMusics = async (req, res) => {
   try {
-    const { keyword, numberOfsong } = req.body;
+    const { keyword, numberOfsong } = req.query;
     if (!keyword) return res.status(400).json({ message: 'Thiếu từ khóa tìm kiếm (keyword)' });
 
     // Gọi iTunes API
@@ -140,11 +140,11 @@ exports.addMusics = async (req, res) => {
           artist: track.artistName,
           album: track.collectionName,
           genre: genre,
+          duration: Math.floor(track.trackTimeMillis / 1000),
           mp3_url: track.previewUrl,
           image_url: track.artworkUrl100,
-          is_premium: track.trackPrice > 0,
           release_date: track.releaseDate,
-          moods: moods,           // ← Thêm moods vào đây
+          moods: moods,          
         };
       })
     );
@@ -162,7 +162,7 @@ exports.addMusics = async (req, res) => {
     
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'Server Error' });
+    res.status(500).json({ message: 'Server Error', error: err});
   }
 };
 

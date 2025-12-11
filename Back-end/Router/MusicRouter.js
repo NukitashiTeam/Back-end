@@ -196,19 +196,19 @@ router.post('/add-musics-after-review', MusicController.addMusicsAfterReview);
  *     tags:
  *       - Music
  *     summary: Tìm và thêm nhạc từ iTunes (gửi keyword trong body)
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               keyword:
- *                 type: string
- *                 example: Adele
- *               numberOfsong:
- *                 type: integer
- *                 example: 10
+ *     parameters:
+ *       - in: query
+ *         name: keyword
+ *         schema:
+ *           type: string
+ *         required: true
+ *       - in: query
+ *         name: numberOfsong
+ *         schema:
+ *           type: integer
+ *           example: 10
+ *         required: false
+ *         description: Số lượng kết quả (limit)
  *     responses:
  *       200:
  *         description: Thêm nhạc thành công
