@@ -50,6 +50,61 @@ const moods = [
 ];
 
 
+// @ts-ignore
+exports.getAllMoods = async (req, res) => {
+  try {
+    const moods = await Mood.find().sort({ createdAt: -1 });
+
+    res.status(200).json({
+      message: 'Lấy danh sách Mood thành công',
+      data: moods
+    });
+  } catch (err) {
+    console.error(err);
+    // @ts-ignore
+    res.status(500).json({ message: 'Lỗi server', error: err.message });
+  }
+};
+
+
+// @ts-ignore
+exports.getMoodByName = async (req, res) => {
+  try{
+    const {name} = req.params
+    const mood = await Mood.find({name: name})
+
+    res.status(200).json({
+      message: 'Lấy được mood theo yêu cầu',
+      data: mood
+    });
+  }
+  catch(err){
+    console.error(err);
+    // @ts-ignore
+    res.status(500).json({ message: 'Lỗi server', error: err.message });
+  }
+}
+
+
+// @ts-ignore
+exports.getMoodById = async (req, res) => {
+  try{
+    const {mood_id} = req.params
+    const mood = await Mood.findById(mood_id)
+
+    res.status(200).json({
+      message: 'Lấy được mood theo yêu cầu',
+      data: mood
+    });
+  }
+  catch(err){
+    console.error(err);
+    // @ts-ignore
+    res.status(500).json({ message: 'Lỗi server', error: err.message });
+  }
+}
+
+
 // Hàm này dùng 1 lần thôi - không cần add thêm
 // @ts-ignore
 exports.addMoodIntoService = async (req, res) => {

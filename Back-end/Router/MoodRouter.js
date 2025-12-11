@@ -5,12 +5,160 @@ const MoodController = require('../Controller/MoodController');
 
 /**
  * @swagger
+ * /api/mood/all:
+ *   get:
+ *     tags:
+ *       - Mood
+ *     summary: Lấy danh sách tất cả các Mood
+ *     description: Trả về toàn bộ danh sách Mood, sắp xếp theo thời gian tạo mới nhất trước
+ *     responses:
+ *       200:
+ *         description: Lấy danh sách Mood thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Lấy danh sách Mood thành công
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Mood'
+ *       500:
+ *         description: Lỗi server
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Lỗi server
+ *                 error:
+ *                   type: string
+ */
+router.get('/all', MoodController.getAllMoods);
+
+/**
+ * @swagger
+ * /api/mood/name/{name}:
+ *   get:
+ *     tags:
+ *       - Mood
+ *     summary: Tìm Mood theo tên
+ *     description: Tìm các Mood có tên chứa chuỗi được cung cấp (không phân biệt hoa thường)
+ *     parameters:
+ *       - in: path
+ *         name: name
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Tên Mood cần tìm
+ *         example: vui
+ *     responses:
+ *       200:
+ *         description: Lấy được Mood theo tên
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Lấy được mood theo tên
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Mood'
+ *       400:
+ *         description: Thiếu tham số name
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Thiếu tham số name
+ *       500:
+ *         description: Lỗi server
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Lỗi server
+ *                 error:
+ *                   type: string
+ */
+router.get('/name/:name', MoodController.getMoodByName);
+
+/**
+ * @swagger
+ * /api/mood/id/{mood_id}:
+ *   get:
+ *     tags:
+ *       - Mood
+ *     summary: Lấy thông tin chi tiết Mood theo ID
+ *     description: Trả về thông tin một Mood cụ thể theo MongoDB ObjectId
+ *     parameters:
+ *       - in: path
+ *         name: mood_id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: MongoDB ObjectId của Mood
+ *         example: "507f1f77bcf86cd799439011"
+ *     responses:
+ *       200:
+ *         description: Lấy Mood thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Lấy được mood theo id
+ *                 data:
+ *                   $ref: '#/components/schemas/Mood'
+ *       404:
+ *         description: Không tìm thấy Mood
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Không tìm thấy mood
+ *       500:
+ *         description: Lỗi server
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Lỗi server
+ *                 error:
+ *                   type: string
+ */
+router.get('/id/:mood_id', MoodController.getMoodById);
+
+/**
+ * @swagger
  * /api/mood/mood-type:
  *   post:
  *     summary: Thêm mood mới vào hệ thống
  *     description: Tạo một mood mới với các thông tin cơ bản (name, displayName, description, colorCode, icon)
  *     tags:
- *       - Moods
+ *       - Mood
  *     requestBody:
  *       required: true
  *       content:
@@ -118,5 +266,6 @@ const MoodController = require('../Controller/MoodController');
  *                   example: Server Error
  */
 router.post('/mood-type', MoodController.addMoodIntoService);
+
 
 module.exports = router;

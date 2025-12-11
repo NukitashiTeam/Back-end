@@ -82,6 +82,16 @@ const option = {
                         mood: { type: 'string', example: '' }
                     }
                 },
+                Mood: {
+                    type: 'object',
+                    properties: {
+                        _id:           { type: 'string',  example: '507f1f77bcf86cd799439011' },
+                        name:          { type: 'string',  example: 'Vui vẻ' },
+                        icon:          { type: 'string',  example: '😄' },
+                        createdAt:     { type: 'string',  format: 'date-time', example: '2025-01-01T00:00:00.000Z' },
+                        updatedAt:     { type: 'string',  format: 'date-time', example: '2025-01-01T00:00:00.000Z' }
+                    }
+                }
             },
             securitySchemes: {
                 bearerAuth: {
