@@ -106,3 +106,13 @@ exports.requestRefreshToken = async (req, res) => {
         return res.status(500).json({ message: "Lỗi server khi Refresh Token" });
     }
 };
+
+// Middleware kiểm tra quyền Admin
+exports.verifyAdmin = (req, res, next) => {
+    // authenticationToken đã chạy trước đó nên req.user đã có dữ liệu
+    if (req.user && req.user.role === 'admin') {
+        next(); // Là admin -> Cho qua
+    } else {
+        return res.status(403).json({ message: "Truy cập bị từ chối. Yêu cầu quyền Admin." });
+    }
+};
