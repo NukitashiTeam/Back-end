@@ -100,12 +100,80 @@ const option = {
                 bearerFormat: "JWT",
                 },
             },
+            responses: {
+                Unauthorized: {
+                    description: 'Access token is missing or invalid',
+                    content: {
+                        'application/json': {
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    message: { type: 'string', example: 'Truy cập bị từ chối. Token không hợp lệ.' }
+                                }
+                            }
+                        }
+                    }
+                },
+                Forbidden: {
+                    description: 'Access denied. Requires higher privileges (Admin) or ownership.',
+                    content: {
+                        'application/json': {
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    message: { type: 'string', example: 'Bạn không có quyền thực hiện hành động này.' }
+                                }
+                            }
+                        }
+                    }
+                },
+                NotFound: {
+                    description: 'The specified resource was not found',
+                    content: {
+                        'application/json': {
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    message: { type: 'string', example: 'Không tìm thấy tài nguyên.' }
+                                }
+                            }
+                        }
+                    }
+                },
+                BadRequest: {
+                    description: 'Invalid input provided',
+                    content: {
+                        'application/json': {
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    message: { type: 'string', example: 'Dữ liệu đầu vào không hợp lệ.' }
+                                }
+                            }
+                        }
+                    }
+                },
+                ServerError: {
+                    description: 'Internal server error',
+                    content: {
+                        'application/json': {
+                            schema: {
+                                type: 'object',
+                                properties: {
+                                    message: { type: 'string', example: 'Lỗi server.' }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         },
         security: [
             {
                 bearerAuth: [],
             },
         ],
+        
 
     },
     apis: ['./Router/*.js']

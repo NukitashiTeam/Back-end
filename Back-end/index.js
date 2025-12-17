@@ -34,6 +34,7 @@ const connectDB = require('./database');
 const userRouter = require('./Router/UserRouter');
 const musicRouter = require('./Router/MusicRouter');
 const moodRouter = require('./Router/MoodRouter');
+const ContextRouter = require('./Router/ContextRouter');
 
 const specs = swaggerJSDoc(option);
 app.set("trust proxy", 1);
@@ -63,6 +64,7 @@ app.get('/', (req, res) => {
 app.use('/api/music', musicRouter);
 app.use('/api/user', userRouter); 
 app.use('/api/mood', moodRouter);
+app .use('/api/context', ContextRouter);
 
 app.use(cors({
   origin: [
