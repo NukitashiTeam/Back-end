@@ -91,6 +91,34 @@ const option = {
                         createdAt:     { type: 'string',  format: 'date-time', example: '2025-01-01T00:00:00.000Z' },
                         updatedAt:     { type: 'string',  format: 'date-time', example: '2025-01-01T00:00:00.000Z' }
                     }
+                },
+                Playlist: {
+                    type: 'object',
+                    properties: {
+                        _id: { type: 'string', example: '6566f1b4d9d4d54adbc2f8ee' },
+                        title: { type: 'string', example: 'Nhạc chill cuối tuần' },
+                        thumbnail: { type: 'string', example: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745' },
+                        description: { type: 'string', example: 'Những bản nhạc lofi nhẹ nhàng để học tập' },
+                        type: { type: 'string', enum: ['random', 'manual'], example: 'manual' },
+                        mood: { type: 'string', example: 'Thư giãn' },
+                        context: { type: 'string', example: 'Học bài' },
+                        songs: {
+                            type: 'array',
+                            items: {
+                                type: 'object',
+                                properties: {
+                                    songId: { type: 'string', example: '64adbc2f8ee9c9f1b4d9d4d5' },
+                                    title: { type: 'string', example: 'Hello' },
+                                    artist: { type: 'string', example: 'Adele' },
+                                    addedAt: { type: 'string', format: 'date-time', example: '2025-01-01T08:00:00Z' }
+                                }
+                            }
+                        },
+                        owner: { type: 'string', example: '64adbc2f8ee9c9f1b4d9d4d5', description: 'ID của người dùng sở hữu playlist' },
+                        isPublic: { type: 'boolean', example: true },
+                        createdAt: { type: 'string', format: 'date-time', example: '2025-01-01T00:00:00.000Z' },
+                        updatedAt: { type: 'string', format: 'date-time', example: '2025-01-01T00:00:00.000Z' }
+                    }
                 }
             },
             securitySchemes: {
