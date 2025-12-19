@@ -408,36 +408,14 @@ router.post('/signup', UserController.userSignUp);
  */
 router.post('/signup/step1', UserController.signUpStepOne);
 
+
+//router.post('/signup/step2', UserController.signUpStepTwo);
+
 /**
  * @swagger
  * /api/user/signup/step2:
  *   post:
- *     summary: Bước 2 - Chọn phương thức nhận OTP
- *     tags: [User]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               otpMethod:
- *                 type: string
- *                 enum: [email, sms]
- *                 example: email
- *     responses:
- *       200:
- *         description: Phương thức đã được lưu
- *       400:
- *         description: Lỗi xác thực
- */
-router.post('/signup/step2', UserController.signUpStepTwo);
-
-/**
- * @swagger
- * /api/user/signup/step3:
- *   post:
- *     summary: Bước 3 - Điền thông tin liên lạc để nhận OTP
+ *     summary: Bước 2 - Điền thông tin liên lạc để nhận OTP
  *     tags: [User]
  *     requestBody:
  *       required: true
@@ -455,7 +433,7 @@ router.post('/signup/step2', UserController.signUpStepTwo);
  *       400:
  *         description: Lỗi xác thực
  */
-router.post('/signup/step3', UserController.signUpStepThree);
+router.post('/signup/step2', UserController.signUpStepTwo);
 
 /**
  * @swagger

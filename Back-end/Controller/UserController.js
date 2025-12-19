@@ -295,60 +295,50 @@ exports.signUpStepOne = async (req, res) => {
   }
 }
 
+// exports.signUpStepTwo = async (req, res) => {
+//   try{
+//     const { otpMethod } = req.body;
+
+//     if (!req.session.signupData) {
+//         return res.status(400).json({
+//             message: "Vui lòng hoàn tất bước 1 trước"
+//         });
+//     }
+
+//     if (!otpMethod || !['email', 'sms'].includes(otpMethod)) {
+//         return res.status(400).json({
+//             message: "Phương thức phải là 'email' hoặc 'sms'"
+//         })
+//     };
+
+//     req.session.signupData.otpMethod = otpMethod;
+//     return res.status(200).json({message: "Bước 2 hoàn tất"});
+//   }
+//   catch(err){
+//     // @ts-ignore
+//     res.status(500).json({message: err.message || "lỗi server"});
+//   }
+// }
+
 exports.signUpStepTwo = async (req, res) => {
-  try{
-    const { otpMethod } = req.body;
-
-    if (!req.session.signupData) {
-        return res.status(400).json({
-            message: "Vui lòng hoàn tất bước 1 trước"
-        });
-    }
-
-    if (!otpMethod || !['email', 'sms'].includes(otpMethod)) {
-        return res.status(400).json({
-            message: "Phương thức phải là 'email' hoặc 'sms'"
-        })
-    };
-
-    req.session.signupData.otpMethod = otpMethod;
-    return res.status(200).json({message: "Bước 2 hoàn tất"});
-  }
-  catch(err){
-    // @ts-ignore
-    res.status(500).json({message: err.message || "lỗi server"});
-  }
-}
-
-exports.signUpStepThree = async (req, res) => {
   try{
     const {contact} = req.body
 
-    if(!req.session.signupData || !req.session.signupData.otpMethod){
-      return res.status(400).json({message: "Vui lòng hoàn tất bước 1 và 2 trước"});
+    if(!req.session.signupData){
+      return res.status(400).json({message: "Vui lòng hoàn tất bước 1trước"});
     }
 
-    const {username, password, otpMethod} = req.session.signupData;
+    const {username, password} = req.session.signupData;
 
     if(!contact){
       return res.status(400).json({message: "Vui lòng cung cấp thông tin liên lạc trước"})
     }
-
-    if(otpMethod === 'sms'){
-      const existingPhone = await User.findOne({ phone: contact });
-      if (existingPhone) {
-          return res.status(400).json({
-              message: "Số điện thoại đã tồn tại"
-          });
-      }
-    }
-    else{
-      const existingEmail = await User.findOne({ email: contact });
-      if (existingEmail) {
-          return res.status(400).json({
-              message: "Email đã tồn tại"
-          });
-      }
+   
+    const existingEmail = await User.findOne({ email: contact });
+    if (existingEmail) {
+        return res.status(400).json({
+            message: "Email đã tồn tại"
+        });
     }
 
     const otp = generateOTP();
@@ -359,33 +349,22 @@ exports.signUpStepThree = async (req, res) => {
         password,
         isVerified: false,
         otp,
-        otpMethod,
         otpExpiry
     };
 
-    if (otpMethod === 'email') {
-        // @ts-ignore
-        userData.email = contact;
-    } else {
-        // @ts-ignore
-        userData.phone = contact;
-    }
+    userData.email = contact;
 
-      const newUser = new User(userData);
+    const newUser = new User(userData);
 
-      await newUser.save();
-      if (otpMethod === 'email') {
-          await sendOTPbyEmail(otp, contact);
-      } else {
-          await sendOTPbySMS(otp, contact);
-      }
+    await newUser.save();
+    await sendOTPbyEmail(otp, contact);
+    
+    req.session.signupData.contact = contact;
+    req.session.signupData.userId = newUser._id.toString();
 
-      req.session.signupData.contact = contact;
-      req.session.signupData.userId = newUser._id.toString();
-
-      res.status(200).json({
-          message: `OTP đã được gửi đến ${otpMethod === 'email' ? 'email' : 'số điện thoại'} của bạn`
-      });
+    res.status(200).json({
+        message: `OTP đã được gửi đến email của bạn`
+    });
   }
   catch(err){
     // @ts-ignore
@@ -395,12 +374,10 @@ exports.signUpStepThree = async (req, res) => {
 
 exports.verifyOTP = async (req, res) => {
   try{
-    const {contact, otpMethod} = req.session.signupData
+    const {contact} = req.session.signupData
     const {otp} = req.body;
     let user = null
-    if(otpMethod === 'email') user = await User.findOne({email: contact});
-    else user = await User.findOne({phone: contact})
-    // const user = await User.findOne({email});
+    user = await User.findOne({email: contact});
 
     if(!user){
       return res.status(400).json({message: "Không tìm thấy user"});
@@ -415,7 +392,6 @@ exports.verifyOTP = async (req, res) => {
 
     user.isVerified = true;
     user.otp = undefined;
-    user.otpMethod = undefined;
     user.otpExpiry = undefined;
 
     await user.save();
@@ -431,13 +407,10 @@ exports.verifyOTP = async (req, res) => {
 
 exports.resendOTP = async (req, res) => {
   try{
-    const otpMethod = req.session.signupData.otpMethod 
     const contact = req.session.signupData.contact;
 
     let user = null;
-
-    if(otpMethod === 'sms') user = await User.findOne({phone: contact});
-    else user = await User.findOne({email: contact});
+    user = await User.findOne({email: contact});
     
       
     if(!user) return res.status(400).json({message: "Không tìm thấy user"});
@@ -448,11 +421,7 @@ exports.resendOTP = async (req, res) => {
     const otpExpiry = new Date(Date.now() + 10 * 60 * 1000);
     await user.save();
 
-    if (otpMethod === 'email') {
-        await sendOTPbyEmail(otp, contact);
-    } else {
-        await sendOTPbySMS(otp, contact);
-    }
+    await sendOTPbyEmail(otp, contact);
 
     res.json({message: "OTP đã được gửi lại thành công"});
   }
