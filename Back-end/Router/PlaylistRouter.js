@@ -253,6 +253,220 @@ router.get('/random-by-mood', authenticationToken, PlaylistController.createArra
  */
 router.post('/save-random-mood',authenticationToken, PlaylistController.createRandomPlaylist);
 
+/**
+ * @swagger
+ * /api/playlist/detail/{id}:
+ *   get:
+ *     tags:
+ *       - Playlist
+ *     summary: Lấy chi tiết một playlist
+ *     description: Trả về toàn bộ thông tin bài hát trong playlist.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID của playlist
+ *     responses:
+ *       '200':
+ *         description: Thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Playlist'
+ *       '403':
+ *         description: Không có quyền truy cập
+ *       '404':
+ *         description: Playlist không tồn tại
+ */
+router.get('/detail/:id', authenticationToken, PlaylistController.getPlaylistDetail);
 
+/**
+ * @swagger
+ * /api/playlist/random-by-context:
+ *   get:
+ *     tags:
+ *       - Playlist
+ *     summary: Random bài hát theo Context (Preview)
+ *     description: Dựa vào tên ngữ cảnh (vd study, workout) để tìm các Mood liên quan, sau đó random bài hát.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: contextName
+ *         required: true
+ *         schema:
+ *           type: string
+ *           example: workout
+ *         description: Tên ngữ cảnh (key name)
+ *     responses:
+ *       '200':
+ *         description: Thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 context:
+ *                   type: string
+ *                   example: workout
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       songId:
+ *                         type: string
+ *                       title:
+ *                         type: string
+ *                       artist:
+ *                         type: string
+ *       '404':
+ *         description: Không tìm thấy context hoặc bài hát
+ */
+router.get('/random-by-context', authenticationToken, PlaylistController.createArraySongsRandomByContext);
 
+/**
+ * @swagger
+ * /api/playlist/save-random-context:
+ *   post:
+ *     tags:
+ *       - Playlist
+ *     summary: Lưu Playlist Random theo Context
+ *     description: Lưu danh sách bài hát preview thành playlist chính thức (Type = random).
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - title
+ *               - context
+ *               - songs
+ *             properties:
+ *               title:
+ *                 type: string
+ *                 example: My Workout Mix
+ *               context:
+ *                 type: string
+ *                 example: workout
+ *               songs:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     songId:
+ *                       type: string
+ *                     title:
+ *                       type: string
+ *                     artist:
+ *                       type: string
+ *     responses:
+ *       '201':
+ *         description: Lưu thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Playlist đã được lưu vào thư viện của bạn!
+ *                 data:
+ *                   $ref: '#/components/schemas/Playlist'
+ */
+router.post('/save-random-context', authenticationToken, PlaylistController.saveRandomContextPlaylist);
+
+/**
+ * @swagger
+ * /api/playlist/music/{playlistId}:
+ *   delete:
+ *     tags:
+ *       - Playlist
+ *     summary: Xóa một bài hát khỏi playlist
+ *     description: Xóa bài hát dựa trên musicId. Chỉ chủ sở hữu playlist mới thực hiện được.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: playlistId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID của playlist
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - musicId
+ *             properties:
+ *               musicId:
+ *                 type: string
+ *                 example: '64adbc2f8ee9c9f1b4d9d4d5'
+ *     responses:
+ *       '200':
+ *         description: Xóa thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: 'Bài hát đã được xóa thành công'
+ *                 data:
+ *                   $ref: '#/components/schemas/Playlist'
+ *       '404':
+ *         description: Playlist không tồn tại hoặc không chính chủ
+ *       '500':
+ *         description: Lỗi server
+ */
+router.delete('/music/:playlistId', authenticationToken, PlaylistController.removeSongFromPlaylist);
+
+/**
+ * @swagger
+ * /api/playlist/{playlistId}:
+ *   delete:
+ *     tags:
+ *       - Playlist
+ *     summary: Xóa playlist của người dùng
+ *     description: Xóa vĩnh viễn một playlist. Chỉ chủ sở hữu mới có quyền xóa.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: playlistId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID của playlist cần xóa
+ *     responses:
+ *       '200':
+ *         description: Xóa thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: 'Playlist đã được xóa thành công'
+ *       '404':
+ *         description: Playlist không tồn tại hoặc không chính chủ
+ *       '500':
+ *         description: Lỗi server
+ */
+router.delete('/:playlistId', authenticationToken, PlaylistController.deletePlaylist);
 module.exports = router;

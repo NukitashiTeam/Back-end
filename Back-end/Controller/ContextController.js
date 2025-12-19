@@ -1,6 +1,6 @@
 // Controller/ContextController.js
 const Context = require('../Model/ContextSchema');
-const User = require('../Model/UserSchema'); // Cần để lấy tên User nếu context do user tạo
+const User = require('../Model/UserSchema');
 
 // API 1: Lấy toàn bộ Context của Admin (System)
 // GET /api/context/all/admin
