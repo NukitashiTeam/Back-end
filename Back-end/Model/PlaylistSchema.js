@@ -14,7 +14,8 @@ const PlaylistSchema = new mongoose.Schema({
         songId: { type: mongoose.Schema.Types.ObjectId, ref: 'Music' },
         title: String,
         artist: String,
-        addedAt: { type: Date, default: Date.now }
+        addedAt: { type: Date, default: Date.now },
+        _id: false
     }],
     owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     isPublic: { type: Boolean, default: true }

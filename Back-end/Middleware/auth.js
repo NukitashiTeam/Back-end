@@ -23,7 +23,7 @@ exports.authenticationToken = (req, res, next) => {
 // Hàm tạo Access Token
 exports.generateAccessToken = (user) => {
     return jwt.sign(
-        { _id: user._id, role: user.role, userInfo: user}, 
+        { _id: user._id, role: user.role}, 
         process.env.ACCESS_TOKEN_SECRET, // Đảm bảo đã định nghĩa trong .env
         { expiresIn: '15m' } 
     );
@@ -32,7 +32,7 @@ exports.generateAccessToken = (user) => {
 // Hàm tạo Refresh Token
 exports.generateRefreshToken = (user) => {
     return jwt.sign(
-        { _id: user._id, role: user.role, userInfo: user}, 
+        { _id: user._id, role: user.role}, 
         process.env.REFRESH_TOKEN_SECRET, // Đảm bảo đã định nghĩa trong .env
         { expiresIn: '7d' } 
     );
