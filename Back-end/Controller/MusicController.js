@@ -41,8 +41,21 @@ exports.checkMusicInItunes = async (req, res) => {
       })
     );
 
+    let newSongCount = 0;
+
+    await Promise.all(musicsWithMood.map(async (song) => {
+    
+    const exists = await Music.findOne({ track_id: song.track_id });
+
+    if (!exists) {
+        await Music.create(song);
+        newSongCount++;
+    }
+  }));
+
     // Chỉ trả về preview, chưa lưu
-    res.status(200).json({ message: 'Dữ liệu preview', preview: musicsWithMood});
+    res.status(200).json({ message: 'Dữ liệu preview', preview: musicsWithMood, total_found: musicsWithMood.length,
+        newly_saved: newSongCount,});
 
 
   } catch (err) {
