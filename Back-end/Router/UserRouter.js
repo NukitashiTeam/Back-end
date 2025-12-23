@@ -3,7 +3,7 @@ const express = require('express');
 const router = express.Router();
 
 const UserController = require('../Controller/UserController');
-const { authenticationToken, generateAccessToken, generateRefreshToken} = require('../Middleware/auth.js')
+const { authenticationToken, generateAccessToken, generateRefreshToken, requestRefreshToken} = require('../Middleware/auth.js')
 
 // Gán controller vào router
 
@@ -815,5 +815,64 @@ router.put('/user/:id', UserController.updateUser);
  *         description: Lỗi server
  */
 router.delete('/user/:id', UserController.deleteUser);
+
+/**
+ * @swagger
+ * /api/user/refreshToken:
+ *   post:
+ *     summary: Cấp lại Access Token mới (Refresh Token Rotation)
+ *     tags:
+ *       - User
+ *     description: >
+ *       API này hoạt động tự động dựa trên **HttpOnly Cookie**.
+ *       Frontend **không cần gửi body**, chỉ cần gọi API này (kèm `credentials: include`).
+ *       Server sẽ đọc cookie `refreshToken`, nếu hợp lệ sẽ:
+ *       - Trả về `accessToken` mới
+ *       - Tự động set lại cookie `refreshToken` mới (cơ chế Rotation)
+ *     responses:
+ *       200:
+ *         description: Cấp lại token thành công.
+ *         headers:
+ *           Set-Cookie:
+ *             description: Chứa Refresh Token mới (HttpOnly).
+ *             schema:
+ *               type: string
+ *               example: refreshToken=abcde12345; Path=/; HttpOnly; Secure; SameSite=Strict
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 accessToken:
+ *                   type: string
+ *                   description: Token mới dùng để gọi API (hạn 15 phút).
+ *                   example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+ *                 message:
+ *                   type: string
+ *                   example: Cấp Access Token mới thành công
+ *       401:
+ *         description: Không tìm thấy Refresh Token trong Cookie (chưa đăng nhập).
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Truy cập bị từ chối. Không có Refresh Token.
+ *       403:
+ *         description: Refresh Token không hợp lệ, hết hạn hoặc user đã đăng xuất/bị khóa.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: Refresh Token đã hết hạn. Vui lòng đăng nhập lại.
+ *       500:
+ *         description: Lỗi Server nội bộ.
+ */
+router.post('/refreshToken', requestRefreshToken);
 
 module.exports = router;

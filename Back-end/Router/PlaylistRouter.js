@@ -233,6 +233,7 @@ router.get('/random-by-mood', authenticationToken, PlaylistController.createArra
  *                     - songId
  *                     - title
  *                     - artist
+ *                     - image_url
  *                   properties:
  *                     songId:
  *                       type: string

@@ -14,6 +14,7 @@ const PlaylistSchema = new mongoose.Schema({
         songId: { type: mongoose.Schema.Types.ObjectId, ref: 'Music' },
         title: String,
         artist: String,
+        image_url: { type: String },
         addedAt: { type: Date, default: Date.now },
         _id: false
     }],

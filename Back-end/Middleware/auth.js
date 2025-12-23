@@ -1,5 +1,5 @@
 // @ts-nocheck
-
+const User = require('../Model/UserSchema');
 const jwt = require('jsonwebtoken');
 
 exports.authenticationToken = (req, res, next) => {
@@ -21,7 +21,7 @@ exports.authenticationToken = (req, res, next) => {
 };
 
 // Hàm tạo Access Token
-exports.generateAccessToken = (user) => {
+const genAccessToken = (user) => {
     return jwt.sign(
         { _id: user._id, role: user.role}, 
         process.env.ACCESS_TOKEN_SECRET, // Đảm bảo đã định nghĩa trong .env
@@ -30,13 +30,16 @@ exports.generateAccessToken = (user) => {
 };
 
 // Hàm tạo Refresh Token
-exports.generateRefreshToken = (user) => {
+const genRefreshToken = (user) => {
     return jwt.sign(
         { _id: user._id, role: user.role}, 
         process.env.REFRESH_TOKEN_SECRET, // Đảm bảo đã định nghĩa trong .env
         { expiresIn: '7d' } 
     );
 };
+
+exports.generateAccessToken = genAccessToken;
+exports.generateRefreshToken = genRefreshToken;
 
 
 // Hàm request Refresh Token
@@ -79,8 +82,8 @@ exports.requestRefreshToken = async (req, res) => {
             }
 
             // 4. Tạo Access Token MỚI và Refresh Token MỚI
-            const newAccessToken = generateAccessToken(user);
-            const newRefreshToken = generateRefreshToken(user);
+            const newAccessToken = genAccessToken(user);
+            const newRefreshToken = genRefreshToken(user);
 
             // 5. Lưu Refresh Token MỚI vào DB
             user.refreshToken = newRefreshToken;
@@ -103,7 +106,7 @@ exports.requestRefreshToken = async (req, res) => {
 
     } catch (err) {
         console.error("Lỗi khi Refresh Token:", err);
-        return res.status(500).json({ message: "Lỗi server khi Refresh Token" });
+        return res.status(500).json({ message: "Lỗi server khi Refresh Token", error: err});
     }
 };
 

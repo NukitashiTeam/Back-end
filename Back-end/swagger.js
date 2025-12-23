@@ -110,6 +110,7 @@ const option = {
                                     songId: { type: 'string', example: '64adbc2f8ee9c9f1b4d9d4d5' },
                                     title: { type: 'string', example: 'Hello' },
                                     artist: { type: 'string', example: 'Adele' },
+                                    image_url: { type: 'string', example: 'https://is4-ssl.mzstatic.com/image.jpg' },
                                     addedAt: { type: 'string', format: 'date-time', example: '2025-01-01T08:00:00Z' }
                                 }
                             }

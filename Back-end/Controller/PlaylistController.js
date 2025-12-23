@@ -72,7 +72,8 @@ exports.addSongIntoPlaylist = async (req, res) => {
                     songs: { 
                         songId: songData._id, 
                         title: songData.title, 
-                        artist: songData.artist 
+                        artist: songData.artist ,
+                        image_url: songData.image_url
                     } 
                 } 
             },
@@ -98,7 +99,7 @@ exports.createArraySongsRandomByMood = async (req, res) => {
         const randomSongs = await Music.aggregate([
             { $match: { "moods.name": moodName } },
             { $sample: { size: 5 } }, 
-            { $project: { _id: 1, title: 1, artist: 1 } }
+            { $project: { _id: 1, title: 1, artist: 1, image_url: 1 } }
         ]);
 
         if (randomSongs.length === 0) {
@@ -109,7 +110,8 @@ exports.createArraySongsRandomByMood = async (req, res) => {
         const formattedSongs = randomSongs.map(song => ({
             songId: song._id,
             title: song.title,
-            artist: song.artist
+            artist: song.artist,
+            image_url: song.image_url
         }));
 
         // 3. Tạo Playlist mới
@@ -230,7 +232,8 @@ exports.createArraySongsRandomByContext = async (req, res) => {
         const formattedSongs = randomSongs.map(song => ({
             songId: song._id,
             title: song.title,
-            artist: song.artist
+            artist: song.artist,
+            image_url: song.image_url
         }));
 
         res.status(200).json({
@@ -290,8 +293,6 @@ exports.removeSongFromPlaylist = async (req, res) => {
             return res.status(400).json({ message: "Thiếu musicId" });
         }
 
-        // Tìm playlist và xóa bài hát bằng toán tử $pull
-        // Điều kiện: ID playlist đúng VÀ Owner phải là user đang login
         const updatedPlaylist = await Playlist.findOneAndUpdate(
             { _id: playlistId, owner: userId },
             { 
