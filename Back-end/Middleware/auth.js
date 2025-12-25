@@ -100,6 +100,7 @@ exports.requestRefreshToken = async (req, res) => {
 
             return res.status(200).json({ 
                 accessToken: newAccessToken,
+                refreshToken: newRefreshToken,
                 message: "Cấp Access Token mới thành công" 
             });
         });
