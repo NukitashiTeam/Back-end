@@ -1,3 +1,4 @@
+// @ts-nocheck
 const express = require('express');
 const router = express.Router();
 const axios = require('axios');
@@ -5,7 +6,9 @@ const fs = require('fs');
 const path = require('path');
 
 const { mapGenreToMoods } = require('../Middleware/MoodMapping');
-const Music = require('../Model/MusicSchema'); // import MusicSchema
+const Music = require('../Model/MusicSchema'); 
+const Mood = require('../Model/MoodSchema');
+const { analyzeMoodWithAI } = require('../Middleware/AIMoodMapping');
 
 
 // @ts-ignore
@@ -13,6 +16,8 @@ exports.checkMusicInItunes = async (req, res) => {
   try{
     const { keyword, numberOfsong } = req.query;
     if (!keyword) return res.status(400).json({ message: 'Thiếu keyword' });
+
+    const allMoods = await Mood.find().sort({ createdAt: -1 }).select('name');
 
     const url = `https://itunes.apple.com/search?term=${encodeURIComponent(keyword)}&entity=musicTrack&limit=${encodeURIComponent(numberOfsong)}`;
     const response = await axios.get(url);
@@ -23,20 +28,49 @@ exports.checkMusicInItunes = async (req, res) => {
       results.map(async (track) => {
     
         const genre = track.primaryGenreName || 'Pop';
-    
+        const duration = await Math.floor(track.trackTimeMillis / 1000);
         const moods = await mapGenreToMoods(genre);
-        
+
+        let finalMoods = [];
+        let aiUsed = false;
+
+        const aiResult = await analyzeMoodWithAI(track.trackName, track.artistName);
+        console.log('AI Mood Analysis Result:', aiResult);
+
+        if (aiResult && aiResult.moods) {
+            finalMoods = aiResult.moods.map((moodNameFromAI, idx) => {
+                const matchedObject = allMoods.find(
+                    m => m.name.toLowerCase() === moodNameFromAI.toLowerCase()
+                );
+                if (matchedObject) {
+                    return {
+                        mood: matchedObject._id, // Lấy ID chuẩn
+                        name: matchedObject.name,
+                        confidence: idx === 0 ? 0.9 : 0.7
+                    };
+                }
+                return null;
+            }).filter(item => item !== null);
+
+            if (finalMoods.length > 0) aiUsed = true;
+        }
+
+        // Fallback nếu AI tạch
+        if (!aiUsed) {
+            finalMoods = await mapGenreToMoods(genre);
+        }
+
         return {
           track_id: track.trackId.toString(),
           title: track.trackName,
           artist: track.artistName,
           album: track.collectionName,
           genre: genre,
-          duration: Math.floor(track.trackTimeMillis / 1000),
+          duration: duration,
           mp3_url: track.previewUrl,
           image_url: track.artworkUrl100,
           release_date: track.releaseDate,
-          moods: moods,           // ← Thêm moods vào đây
+          moods: finalMoods,           // ← Thêm moods vào đây
         };
       })
     );
