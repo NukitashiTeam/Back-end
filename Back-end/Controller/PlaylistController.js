@@ -191,34 +191,22 @@ exports.createArraySongsRandomByContext = async (req, res) => {
     try {
         const { contextName } = req.query;
 
-        if (!contextName) {
-            return res.status(400).json({ message: "Thiếu tên ngữ cảnh (contextName)" });
-        }
-
-        // B1: Tìm Context để lấy danh sách Mood IDs
-        // (Lưu ý: contextName cần khớp với field 'name' trong ContextSchema)
+        // 1. Tìm Context
         const contextData = await Context.findOne({ name: contextName });
-
         if (!contextData) {
             return res.status(404).json({ message: "Ngữ cảnh không tồn tại" });
         }
 
-        // Lấy mảng Mood IDs thuộc context đó
         const targetMoodIds = contextData.moods;
 
-        if (!targetMoodIds || targetMoodIds.length === 0) {
-            return res.status(404).json({ message: "Ngữ cảnh này chưa có mood nào" });
-        }
-
-        // B2: Random nhạc có chứa Mood thuộc danh sách trên
-        // Logic: Music.mood chứa ít nhất 1 mood nằm trong targetMoodIds
+        // 2. Query trong bảng Music
         const randomSongs = await Music.aggregate([
             { 
                 $match: { 
-                    mood: { $in: targetMoodIds } 
+                    "moods.mood": { $in: targetMoodIds } 
                 } 
             },
-            { $sample: { size: 10 } }, // Lấy ngẫu nhiên 10 bài
+            { $sample: { size: 10 } }, 
             { $project: { _id: 1, title: 1, artist: 1 } }
         ]);
 
@@ -226,7 +214,6 @@ exports.createArraySongsRandomByContext = async (req, res) => {
             return res.status(404).json({ message: "Không tìm thấy bài hát phù hợp ngữ cảnh này" });
         }
 
-        // Map data trả về format chuẩn
         const formattedSongs = randomSongs.map(song => ({
             songId: song._id,
             title: song.title,
