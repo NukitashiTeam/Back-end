@@ -209,12 +209,20 @@ exports.createArraySongsRandomByContext = async (req, res) => {
                 } 
             },
             { $sample: { size: 10 } }, 
-            { $project: { _id: 1, title: 1, artist: 1 } }
+            { 
+                $project: { 
+                    _id: 1, 
+                    title: 1, 
+                    artist: 1, 
+                    image_url: 1
+                } 
+            }
         ]);
 
         if (randomSongs.length === 0) {
             return res.status(404).json({ message: "Không tìm thấy bài hát phù hợp ngữ cảnh này" });
         }
+
 
         const formattedSongs = randomSongs.map(song => ({
             songId: song._id,
