@@ -25,7 +25,7 @@ const genAccessToken = (user) => {
     return jwt.sign(
         { _id: user._id, role: user.role}, 
         process.env.ACCESS_TOKEN_SECRET, // Đảm bảo đã định nghĩa trong .env
-        { expiresIn: '30s' } 
+        { expiresIn: '20m' } 
     );
 };
 
@@ -44,7 +44,7 @@ exports.generateRefreshToken = genRefreshToken;
 
 // Hàm request Refresh Token
 exports.requestRefreshToken = async (req, res) => {
-    // 1. Lấy Refresh Token từ cookies
+    
     const refreshToken = req.cookies.refreshToken;
 
     if (!refreshToken) {
@@ -76,7 +76,7 @@ exports.requestRefreshToken = async (req, res) => {
                     httpOnly: true, 
                     secure: process.env.NODE_ENV === 'production', 
                     path: '/',
-                    sameSite: 'strict',
+                    sameSite: process.env.NODE_ENV === 'production' ? 'strict' : 'lax',
                 });
                 return res.status(403).json({ message: "Refresh Token đã hết hạn. Vui lòng đăng nhập lại." });
             }

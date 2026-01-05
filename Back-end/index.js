@@ -4,8 +4,7 @@ const port = process.env.PORT || 3000;
 const bodyParser = require('body-parser');
 const session = require('express-session');
 const cookieParser = require('cookie-parser');
-const cors = require('cors');
-app.use(cors()); 
+const cors = require('cors')
 
 const swaggerUi = require('swagger-ui-express');
 const option = require("./swagger");
@@ -77,7 +76,7 @@ app.use(cors({
     'http://localhost:3000', 
     'http://localhost:8080'
   ],
-  credentials: true
+  credentials: true,
 }));
 
 app.listen(port, () => {
