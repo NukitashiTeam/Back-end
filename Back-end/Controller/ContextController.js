@@ -504,3 +504,41 @@ exports.updateContextMoods = async (req, res) => {
     res.status(500).json({ message: 'Lỗi server' });
   }
 };
+
+// API 10: Xóa Context của User (Xóa bản fork hoặc context tự tạo)
+// DELETE /api/context/user/:contextId
+exports.deleteUserContext = async (req, res) => {
+  try {
+    const { contextId } = req.params;
+    const userId = req.user._id;
+
+    // 1. Tìm Context cần xóa
+    const contextToDelete = await Context.findById(contextId);
+
+    if (!contextToDelete) {
+      return res.status(404).json({ message: 'Không tìm thấy ngữ cảnh' });
+    }
+
+    // 2. Kiểm tra quyền sở hữu
+    // Chỉ được xóa nếu ownerId trùng với userId đang đăng nhập
+    if (contextToDelete.ownerId?.toString() !== userId.toString()) {
+      return res.status(403).json({ message: 'Bạn không có quyền xóa ngữ cảnh này (Có thể đây là ngữ cảnh hệ thống)' });
+    }
+
+    // 3. Thực hiện xóa
+    await Context.findByIdAndDelete(contextId);
+
+    // 4. Phản hồi
+    // Nếu đây là bản forked (có forkedFrom), sau khi xóa nó thì bản gốc hệ thống sẽ tự động hiện lại ở API 7 (Get Home)
+    // Front-end chỉ cần reload lại danh sách là xong.
+    res.status(200).json({
+      message: "Đã xóa ngữ cảnh thành công",
+      deletedId: contextId,
+      isRevertedToSystem: !!contextToDelete.forkedFrom // Báo cho FE biết có phải vừa revert về bản gốc ko
+    });
+
+  } catch (error) {
+    console.error('Delete User Context Error:', error);
+    res.status(500).json({ message: 'Lỗi server khi xóa ngữ cảnh' });
+  }
+};

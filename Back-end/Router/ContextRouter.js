@@ -457,4 +457,53 @@ router.post('/add', authenticationToken, ContextController.addUserContext);
  */
 router.patch('/mood-change/:contextId', authenticationToken, ContextController.updateContextMoods);
 
+// ==================================================================
+// ==================================================================
+// API 10: USER - DELETE CONTEXT
+// ==================================================================
+/**
+ * @swagger
+ * /api/context/user/{contextId}:
+ *   delete:
+ *     summary: (User) Xóa Context cá nhân
+ *     description: >
+ *       Xóa một context do user sở hữu (tự tạo hoặc bản sao từ hệ thống).
+ *       Lưu ý: Nếu xóa một bản sao (Forked Context), bản gốc của hệ thống sẽ xuất hiện trở lại trong danh sách Home.
+ *     tags:
+ *       - Contexts
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: contextId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID của context cần xóa
+ *     responses:
+ *       '200':
+ *         description: Xóa thành công
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   example: "Đã xóa ngữ cảnh thành công"
+ *                 deletedId:
+ *                   type: string
+ *                   example: "6568a..."
+ *                 isRevertedToSystem:
+ *                   type: boolean
+ *                   description: true nếu vừa xóa bản sao và hệ thống tự revert về bản gốc
+ *       '403':
+ *         $ref: '#/components/responses/Forbidden'
+ *       '404':
+ *         $ref: '#/components/responses/NotFound'
+ *       '500':
+ *         $ref: '#/components/responses/ServerError'
+ */
+router.delete('/user/:contextId', authenticationToken, ContextController.deleteUserContext);
+
 module.exports = router;
